@@ -1,0 +1,23 @@
+{
+    "name": "post-restoran-monorepo",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "clean": "turbo run clean",
+        "test": "turbo run test"
+    },
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "devDependencies": {
+        "turbo": "^1.13.0",
+        "typescript": "^5.0.0",
+        "prettier": "^3.0.0",
+        "eslint": "^9.0.0"
+    },
+    "packageManager": "npm@10.0.0"
+}

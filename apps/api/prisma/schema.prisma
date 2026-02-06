@@ -1,0 +1,332 @@
+// apps/api/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  users     User[]
+  products  Product[]
+  categories Category[]
+  tables    RestaurantTable[]
+  orders    Order[]
+  zones     Zone[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  fullName  String
+  role      UserRole @default(CASHIER)
+  isActive  Boolean  @default(true)
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Placeholder for other models
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  image       String?  // URL to optimized webp
+  
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  
+  modifierGroups ProductModifierGroup[]
+  inventory      Inventory?
+  orderItems     OrderItem[]
+
+  isDeleted   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("products")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  image     String?
+  sortOrder Int      @default(0)
+  
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  parentId  String?
+  parent    Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  
+  products  Product[]
+  
+  isDeleted Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("categories")
+}
+
+model ProductModifierGroup {
+  id          String   @id @default(uuid())
+  name        String   // e.g. "Size", "Milk"
+  minSelection Int     @default(0)
+  maxSelection Int     @default(1) // 1 = Radio, >1 = Checkbox
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  modifiers   Modifier[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("product_modifier_groups")
+}
+
+model Modifier {
+  id          String   @id @default(uuid())
+  name        String   // e.g. "Large", "Soy Milk"
+  priceChange Decimal  @default(0) @db.Decimal(10, 2)
+  
+  groupId     String
+  group       ProductModifierGroup @relation(fields: [groupId], references: [id])
+  
+  isDefault   Boolean  @default(false)
+  isAvailable Boolean  @default(true)
+  
+  orderModifiers OrderModifier[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("modifiers")
+}
+
+model Inventory {
+  id          String   @id @default(uuid())
+  quantity    Int      @default(0)
+  lowStockThreshold Int @default(5)
+  allowBackorder Boolean @default(false)
+  
+  productId   String   @unique
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@map("inventory")
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  name      String   // Indoor, Outdoor, VIP
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  tables    RestaurantTable[]
+  
+  isDeleted Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("zones")
+}
+
+model RestaurantTable {
+  id        String   @id @default(uuid())
+  name      String   // T-01
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  zoneId    String?
+  zone      Zone?    @relation(fields: [zoneId], references: [id])
+
+  // Layout & Shape
+  x         Int      @default(0)
+  y         Int      @default(0)
+  width     Int      @default(100)
+  height    Int      @default(100)
+  shape     String   @default("rectangle") // rectangle, circle, square
+  
+  // Capacity & Status
+  capacity  Int      @default(4)
+  status    String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED, CLEANING
+  
+  // Logic
+  isReserved    Boolean   @default(false)
+  reservedUntil DateTime? 
+  
+  // Merge Logic
+  mergedWithId  String?  // If populated, this table is child of another
+  
+  // Active Order context
+  currentOrderId String? // Optimization for quick lookup
+  
+  orders        Order[]
+
+  isDeleted Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("restaurant_tables")
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  ONLINE
+  OTHER
+}
+
+// Order & KDS
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber Int         @default(autoincrement()) // Visual ID (e.g. #1023)
+  
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  
+  tableId     String
+  table       RestaurantTable @relation(fields: [tableId], references: [id])
+  
+  status      OrderStatus @default(PENDING)
+  totalAmount Decimal     @db.Decimal(10, 2)
+  
+  // Payment Details
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
+  paymentRef    String?     // External Transaction ID
+  
+  items       OrderItem[]
+  
+  note        String?
+  
+  isDeleted   Boolean     @default(false)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10, 2) // Snapshotted price at time of order
+  totalPrice  Decimal  @db.Decimal(10, 2) // (unitPrice + modifiers) * quantity
+  
+  modifiers   OrderModifier[]
+  
+  note        String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("order_items")
+}
+
+model OrderModifier {
+  id          String   @id @default(uuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  
+  modifierId  String
+  modifier    Modifier  @relation(fields: [modifierId], references: [id])
+  
+  name        String    // Snapshot name
+  priceChange Decimal   @db.Decimal(10, 2) // Snapshot price
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("order_modifiers")
+}
+
+
+model SupportedLanguage {
+  code      String   @id // en, tr, ar
+  name      String   // English, Türkçe
+  direction String   @default("ltr") // ltr, rtl
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  
+  translations Translation[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("supported_languages")
+}
+
+model Translation {
+  id        String   @id @default(uuid())
+  key       String   // menu.title
+  value     String
+  
+  languageCode String
+  language     SupportedLanguage @relation(fields: [languageCode], references: [code])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, languageCode])
+  @@map("translations")
+}
