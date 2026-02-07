@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useMockMenuQuery, queryClient } from '@/lib/mockMenuQuery';
 import { useMenuStore, MenuItem } from '@/store/useMenuStore';
+import AddProductModal from '@/components/admin/AddProductModal';
+import { Plus } from 'lucide-react';
 
 const categoryOrder: Record<string, number> = {
   'Starters': 0,
@@ -14,6 +16,7 @@ const categoryOrder: Record<string, number> = {
 const AdminMenuPage: React.FC = () => {
   const { data: items, isLoading, isError } = useMockMenuQuery();
   const { toggleAvailability } = useMenuStore();
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
   const handleToggleAvailability = (itemId: string) => {
     toggleAvailability(itemId);
@@ -61,8 +64,19 @@ const AdminMenuPage: React.FC = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Menu</h1>
-        <p className="text-zinc-400">Manage restaurant menu items and availability.</p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold tracking-tight text-white">Menu</h1>
+            <p className="text-zinc-400">Manage restaurant menu items and availability.</p>
+          </div>
+          <button
+            onClick={() => setIsAddProductOpen(true)}
+            className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            Add Product
+          </button>
+        </div>
       </div>
 
       {items && items.length === 0 ? (
@@ -138,6 +152,12 @@ const AdminMenuPage: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Add Product Modal */}
+      <AddProductModal
+        isOpen={isAddProductOpen}
+        onClose={() => setIsAddProductOpen(false)}
+      />
     </div>
   );
 };

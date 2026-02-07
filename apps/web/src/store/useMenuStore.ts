@@ -12,6 +12,7 @@ export interface MenuItem {
 interface MenuState {
   items: MenuItem[];
   toggleAvailability: (id: string) => void;
+  addMenuItem: (name: string, category: MenuItem['category'], price: number, availability: MenuItem['availability']) => void;
 }
 
 export const useMenuStore = create<MenuState>((set) => ({
@@ -38,4 +39,20 @@ export const useMenuStore = create<MenuState>((set) => ({
           : item
       ),
     })),
+  addMenuItem: (name, category, price, availability) =>
+    set((state) => {
+      const newId = (Math.max(...state.items.map((i) => parseInt(i.id))) + 1).toString();
+      return {
+        items: [
+          ...state.items,
+          {
+            id: newId,
+            name,
+            category,
+            price,
+            availability,
+          },
+        ],
+      };
+    }),
 }));
