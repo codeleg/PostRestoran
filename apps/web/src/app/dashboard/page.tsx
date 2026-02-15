@@ -178,6 +178,20 @@ const AdminDashboardPage = () => {
                         <Users className="h-4 w-4" />
                         <span className="text-sm font-medium">{t('nav.staff', 'Staff')}</span>
                     </Link>
+                    <Link
+                        href="/dashboard/inventory"
+                        className="flex items-center gap-2 px-4 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+                    >
+                        <ShoppingBag className="h-4 w-4" />
+                        <span className="text-sm font-medium">Stock</span>
+                    </Link>
+                    <Link
+                        href="/dashboard/reports"
+                        className="flex items-center gap-2 px-4 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+                    >
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="text-sm font-medium">Reports</span>
+                    </Link>
                 </div>
             </div>
         </div>

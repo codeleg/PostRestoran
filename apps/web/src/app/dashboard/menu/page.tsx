@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Link from 'next/link';
 import { useMenuQuery, useToggleAvailability, type MenuItem } from '@/lib/api/useMenuQuery';
 import AddProductModal from '@/components/admin/AddProductModal';
-import { Plus } from 'lucide-react';
+import { Plus, ShoppingBag } from 'lucide-react';
 
 const categoryOrder: Record<string, number> = {
   'Starters': 0,
@@ -78,6 +79,13 @@ const AdminMenuPage: React.FC = () => {
             <Plus className="h-5 w-5" />
             {t('menu.add_product', 'Add Product')}
           </button>
+          <Link
+            href="/dashboard/inventory"
+            className="flex items-center gap-2 px-4 py-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-medium transition-colors border border-zinc-700"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            Stock Management
+          </Link>
         </div>
       </div>
 
