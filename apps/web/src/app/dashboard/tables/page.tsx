@@ -145,7 +145,7 @@ const AdminTablesPage: React.FC = () => {
                 : "bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
             )}
           >
-            {t(`tables.area_${zone.name.toLowerCase().replace(' ', '_')}`, zone.name)}
+            {t(`tables.area_${zone.name.toLowerCase().replace(' ', '_')}`, zone.name) as string}
             <span className={cn(
               "px-1.5 py-0.5 rounded text-[10px] font-black",
               activeZoneId === zone.id ? "bg-emerald-500 text-white" : "bg-zinc-800 text-zinc-500"
