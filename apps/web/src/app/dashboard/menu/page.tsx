@@ -10,10 +10,13 @@ import { Plus, ShoppingBag } from 'lucide-react';
 const categoryOrder: Record<string, number> = {
   'Starters': 0,
   'Main': 1,
-  'Drinks': 2,
-  'Desserts': 3,
+  'Pizza': 2,
+  'Food': 3,
+  'Drinks': 4,
+  'Beverage': 5,
+  'Dessert': 6,
+  'Desserts': 6,
 };
-
 
 const AdminMenuPage: React.FC = () => {
   const { t } = useTranslation();
@@ -51,11 +54,11 @@ const AdminMenuPage: React.FC = () => {
 
   // Group items by category
   const groupedItems = menuItems.reduce((acc: Record<string, MenuItem[]>, item: MenuItem) => {
-    const category = item.category;
-    if (!acc[category]) {
-      acc[category] = [];
+    const categoryName = item.category?.name || 'Uncategorized';
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
     }
-    acc[category].push(item);
+    acc[categoryName].push(item);
     return acc;
   }, {} as Record<string, MenuItem[]>);
 
@@ -111,7 +114,7 @@ const AdminMenuPage: React.FC = () => {
                 {groupedItems[category]?.map((item: MenuItem) => (
                   <div
                     key={item.id}
-                    className={`rounded-xl border p-5 transition-colors ${item.availability === 'Available'
+                    className={`rounded-xl border p-5 transition-colors ${item.isActive
                       ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
                       : 'bg-zinc-900/50 border-zinc-800/50 opacity-75'
                       }`}
@@ -121,9 +124,14 @@ const AdminMenuPage: React.FC = () => {
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-white">{item.name}</h3>
                         <p className="text-zinc-400 text-sm mt-1">
-                          {item.availability === 'Available'
+                          {item.isActive
                             ? `✓ ${t('tables.status_available', 'Available')}`
                             : `✗ ${t('menu.stock_out', 'Out of Stock')}`}
+                          {item.inventory && (
+                            <span className="ml-2 text-xs text-zinc-500">
+                              ({item.inventory.quantity} in stock)
+                            </span>
+                          )}
                         </p>
                       </div>
                       <span className="text-lg font-bold text-teal-400">${Number(item.price).toFixed(2)}</span>
@@ -132,12 +140,12 @@ const AdminMenuPage: React.FC = () => {
                     {/* Availability Badge */}
                     <div className="mb-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${item.availability === 'Available'
-                          ? 'bg-green-500'
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${item.isActive
+                          ? 'bg-emerald-500' // Changed to emerald for consistency
                           : 'bg-red-500'
                           }`}
                       >
-                        {item.availability === 'Available' ? t('tables.status_available', 'Available') : t('menu.stock_out', 'Out of Stock')}
+                        {item.isActive ? t('tables.status_available', 'Available') : t('menu.stock_out', 'Out of Stock')}
                       </span>
                     </div>
 
@@ -145,12 +153,12 @@ const AdminMenuPage: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleToggleAvailability(item.id)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${item.availability === 'Available'
+                        className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${item.isActive
                           ? 'bg-red-600 hover:bg-red-700'
-                          : 'bg-green-600 hover:bg-green-700'
+                          : 'bg-emerald-600 hover:bg-emerald-700'
                           }`}
                       >
-                        {item.availability === 'Available' ? t('menu.stock_out', 'Stock Out') : t('menu.restock', 'Restock')}
+                        {item.isActive ? t('menu.stock_out', 'Stock Out') : t('menu.restock', 'Restock')}
                       </button>
                       <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
                         {t('common.edit', 'Edit')}
