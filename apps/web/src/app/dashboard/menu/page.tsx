@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useMockMenuQuery, queryClient } from '@/lib/mockMenuQuery';
-import { useMenuStore, MenuItem } from '@/store/useMenuStore';
+import { useTranslation } from 'react-i18next';
+import { useMenuQuery, useToggleAvailability, type MenuItem } from '@/lib/api/useMenuQuery';
 import AddProductModal from '@/components/admin/AddProductModal';
 import { Plus } from 'lucide-react';
 
@@ -13,23 +13,23 @@ const categoryOrder: Record<string, number> = {
   'Desserts': 3,
 };
 
+
 const AdminMenuPage: React.FC = () => {
-  const { data: items, isLoading, isError } = useMockMenuQuery();
-  const { toggleAvailability } = useMenuStore();
+  const { t } = useTranslation();
+  const { data: items, isLoading, isError } = useMenuQuery();
+  const toggleAvailability = useToggleAvailability();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
   const handleToggleAvailability = (itemId: string) => {
-    toggleAvailability(itemId);
-    // Invalidate the query to refetch from store
-    queryClient.invalidateQueries({ queryKey: ['menu'] });
+    toggleAvailability.mutate(itemId);
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Menu</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">{t('menu.title', 'Menu Management')}</h1>
         <div className="flex items-center justify-center h-64">
-          <p className="text-zinc-400">Loading menu items...</p>
+          <p className="text-zinc-400">{t('menu.loading', 'Loading menu items...')}</p>
         </div>
       </div>
     );
@@ -38,23 +38,25 @@ const AdminMenuPage: React.FC = () => {
   if (isError) {
     return (
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Menu</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">{t('menu.title', 'Menu Management')}</h1>
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400">
-          <p>Failed to load menu items. Please try again later.</p>
+          <p>{t('menu.error', 'Failed to load menu items. Please try again later.')}</p>
         </div>
       </div>
     );
   }
 
+  const menuItems = (items as unknown as MenuItem[]) || [];
+
   // Group items by category
-  const groupedItems = items?.reduce((acc, item) => {
+  const groupedItems = menuItems.reduce((acc: Record<string, MenuItem[]>, item: MenuItem) => {
     const category = item.category;
     if (!acc[category]) {
       acc[category] = [];
     }
     acc[category].push(item);
     return acc;
-  }, {} as Record<string, MenuItem[]>) || {};
+  }, {} as Record<string, MenuItem[]>);
 
   // Sort categories
   const sortedCategories = Object.keys(groupedItems).sort(
@@ -66,23 +68,23 @@ const AdminMenuPage: React.FC = () => {
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight text-white">Menu</h1>
-            <p className="text-zinc-400">Manage restaurant menu items and availability.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white">{t('menu.title', 'Menu Management')}</h1>
+            <p className="text-zinc-400">{t('menu.no_items_desc', 'Manage restaurant menu items and availability.')}</p>
           </div>
           <button
             onClick={() => setIsAddProductOpen(true)}
             className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
           >
             <Plus className="h-5 w-5" />
-            Add Product
+            {t('menu.add_product', 'Add Product')}
           </button>
         </div>
       </div>
 
-      {items && items.length === 0 ? (
+      {menuItems.length === 0 ? (
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-12 flex flex-col items-center justify-center text-center">
-          <p className="text-zinc-400 mb-2">No menu items configured yet.</p>
-          <p className="text-zinc-600 text-sm">Add menu items to your restaurant menu.</p>
+          <p className="text-zinc-400 mb-2">{t('menu.no_items', 'No menu items configured yet.')}</p>
+          <p className="text-zinc-600 text-sm">{t('menu.no_items_desc', 'Add menu items to your restaurant menu.')}</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -90,42 +92,44 @@ const AdminMenuPage: React.FC = () => {
             <div key={category} className="space-y-4">
               {/* Category Header */}
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-white">{category}</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {t(`category.${category.toLowerCase().replace(' ', '_')}`, category)}
+                </h2>
                 <div className="flex-1 h-px bg-zinc-800" />
               </div>
 
               {/* Menu Items Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groupedItems[category]?.map((item) => (
+                {groupedItems[category]?.map((item: MenuItem) => (
                   <div
                     key={item.id}
-                    className={`rounded-xl border p-5 transition-colors ${
-                      item.availability === 'Available'
-                        ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
-                        : 'bg-zinc-900/50 border-zinc-800/50 opacity-75'
-                    }`}
+                    className={`rounded-xl border p-5 transition-colors ${item.availability === 'Available'
+                      ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                      : 'bg-zinc-900/50 border-zinc-800/50 opacity-75'
+                      }`}
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-white">{item.name}</h3>
                         <p className="text-zinc-400 text-sm mt-1">
-                          {item.availability === 'Available' ? '✓ Available' : '✗ Out of Stock'}
+                          {item.availability === 'Available'
+                            ? `✓ ${t('tables.status_available', 'Available')}`
+                            : `✗ ${t('menu.stock_out', 'Out of Stock')}`}
                         </p>
                       </div>
-                      <span className="text-lg font-bold text-teal-400">${item.price.toFixed(2)}</span>
+                      <span className="text-lg font-bold text-teal-400">${Number(item.price).toFixed(2)}</span>
                     </div>
 
                     {/* Availability Badge */}
                     <div className="mb-4">
                       <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${
-                          item.availability === 'Available'
-                            ? 'bg-green-500'
-                            : 'bg-red-500'
-                        }`}
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${item.availability === 'Available'
+                          ? 'bg-green-500'
+                          : 'bg-red-500'
+                          }`}
                       >
-                        {item.availability}
+                        {item.availability === 'Available' ? t('tables.status_available', 'Available') : t('menu.stock_out', 'Out of Stock')}
                       </span>
                     </div>
 
@@ -133,16 +137,15 @@ const AdminMenuPage: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleToggleAvailability(item.id)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${
-                          item.availability === 'Available'
-                            ? 'bg-red-600 hover:bg-red-700'
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
+                        className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${item.availability === 'Available'
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : 'bg-green-600 hover:bg-green-700'
+                          }`}
                       >
-                        {item.availability === 'Available' ? 'Stock Out' : 'Restock'}
+                        {item.availability === 'Available' ? t('menu.stock_out', 'Stock Out') : t('menu.restock', 'Restock')}
                       </button>
                       <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
-                        Edit
+                        {t('common.edit', 'Edit')}
                       </button>
                     </div>
                   </div>
@@ -161,5 +164,6 @@ const AdminMenuPage: React.FC = () => {
     </div>
   );
 };
+
 
 export default AdminMenuPage;
