@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { useMenuQuery, useToggleAvailability, type MenuItem } from '@/lib/api/useMenuQuery';
 import AddProductModal from '@/components/admin/AddProductModal';
+import AddStockModal from '@/components/admin/AddStockModal';
 import { Plus, ShoppingBag } from 'lucide-react';
 
 const categoryOrder: Record<string, number> = {
@@ -23,9 +24,16 @@ const AdminMenuPage: React.FC = () => {
   const { data: items, isLoading, isError } = useMenuQuery();
   const toggleAvailability = useToggleAvailability();
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
+  const [isAddStockOpen, setIsAddStockOpen] = useState(false);
 
   const handleToggleAvailability = (itemId: string) => {
     toggleAvailability.mutate(itemId);
+  };
+
+  const handleRestock = (item: MenuItem) => {
+    setSelectedProduct(item);
+    setIsAddStockOpen(true);
   };
 
   if (isLoading) {
@@ -152,7 +160,7 @@ const AdminMenuPage: React.FC = () => {
                     {/* Actions */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleToggleAvailability(item.id)}
+                        onClick={() => item.isActive ? handleToggleAvailability(item.id) : handleRestock(item)}
                         className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${item.isActive
                           ? 'bg-red-600 hover:bg-red-700'
                           : 'bg-emerald-600 hover:bg-emerald-700'
@@ -177,6 +185,20 @@ const AdminMenuPage: React.FC = () => {
         isOpen={isAddProductOpen}
         onClose={() => setIsAddProductOpen(false)}
       />
+
+      {/* Add Stock Modal */}
+      {selectedProduct && (
+        <AddStockModal
+          isOpen={isAddStockOpen}
+          onClose={() => {
+            setIsAddStockOpen(false);
+            setSelectedProduct(null);
+          }}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          currentStock={selectedProduct.inventory?.quantity || 0}
+        />
+      )}
     </div>
   );
 };

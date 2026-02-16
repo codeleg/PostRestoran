@@ -25,6 +25,12 @@
         "paths": {
             "@/*": [
                 "./src/*"
+            ],
+            "@postrestoran/shared": [
+                "../../packages/shared/index.ts"
+            ],
+            "@postrestoran/shared/*": [
+                "../../packages/shared/*"
             ]
         }
     },

@@ -16,6 +16,12 @@
             ],
             "@shared/*": [
                 "src/shared/*"
+            ],
+            "@postrestoran/shared": [
+                "../../packages/shared/index.ts"
+            ],
+            "@postrestoran/shared/*": [
+                "../../packages/shared/*"
             ]
         },
         "incremental": true,
