@@ -2,17 +2,20 @@
 
 import { useTranslation } from 'react-i18next';
 import { useOrdersQuery, useUpdateOrderStatus } from '@/lib/api/useOrdersQuery';
+import { OrderStatus } from '@/lib/types';
 
 const statusColors: Record<string, string> = {
-  Pending: 'bg-yellow-500',
-  Preparing: 'bg-blue-500',
-  Completed: 'bg-green-500',
-  Cancelled: 'bg-red-500',
+  [OrderStatus.PENDING]: 'bg-yellow-500',
+  [OrderStatus.PREPARING]: 'bg-blue-500',
+  [OrderStatus.COMPLETED]: 'bg-green-500',
+  [OrderStatus.CANCELLED]: 'bg-red-500',
+  // Map READY to same color as Completed if needed, or add specific color
+  [OrderStatus.READY]: 'bg-green-500',
 };
 
 interface Order {
   id: string;
-  status: 'Pending' | 'Preparing' | 'Completed' | 'Cancelled';
+  status: OrderStatus;
   date: string;
   total: number;
 }
@@ -22,7 +25,8 @@ const AdminOrdersPage: React.FC = () => {
   const { data: orders, isLoading, isError } = useOrdersQuery();
   const updateStatus = useUpdateOrderStatus();
 
-  const handleStatusChange = (orderId: string, newStatus: 'Pending' | 'Preparing' | 'Completed' | 'Cancelled') => {
+  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    console.log(`[AdminOrdersPage] Button Clicked: Order=${orderId}, NewStatus=${newStatus}`);
     updateStatus.mutate({ orderId, status: newStatus });
   };
 
@@ -88,13 +92,13 @@ const AdminOrdersPage: React.FC = () => {
                     <td className="px-6 py-4 text-sm font-semibold text-white">${Number(order.total).toFixed(2)}</td>
                     <td className="px-6 py-4 text-sm flex gap-2">
                       <button
-                        onClick={() => handleStatusChange(order.id, 'Preparing')}
+                        onClick={() => handleStatusChange(order.id, OrderStatus.PREPARING)}
                         className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         {t('orders.mark_preparing', 'Mark Preparing')}
                       </button>
                       <button
-                        onClick={() => handleStatusChange(order.id, 'Completed')}
+                        onClick={() => handleStatusChange(order.id, OrderStatus.COMPLETED)}
                         className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         {t('orders.mark_completed', 'Mark Completed')}

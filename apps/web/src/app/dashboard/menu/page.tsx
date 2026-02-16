@@ -36,6 +36,49 @@ const AdminMenuPage: React.FC = () => {
     setIsAddStockOpen(true);
   };
 
+  const handleEdit = (item: MenuItem) => {
+    setSelectedProduct(item);
+    setIsAddProductOpen(true);
+  };
+
+  const handleAddProduct = () => {
+    setSelectedProduct(null);
+    setIsAddProductOpen(true);
+  }
+
+  // Helper to determine status display
+  const getStatusDisplay = (item: MenuItem) => {
+    const stockQty = item.inventory?.quantity ?? 0;
+
+    // Critical: If stock is <= 0, it is Out of Stock regardless of Active status
+    if (stockQty <= 0) {
+      return {
+        text: t('menu.stock_out', 'Out of Stock'),
+        color: 'bg-red-500',
+        textColor: 'text-red-500',
+        icon: '✗'
+      };
+    }
+
+    // If stock > 0 but Inactive, it is "Hidden" or "Unavailable"
+    if (!item.isActive) {
+      return {
+        text: t('menu.unavailable', 'Unavailable'),
+        color: 'bg-zinc-500',
+        textColor: 'text-zinc-500',
+        icon: '○'
+      };
+    }
+
+    // Default: Available
+    return {
+      text: t('tables.status_available', 'Available'),
+      color: 'bg-emerald-500',
+      textColor: 'text-emerald-500', // for text display
+      icon: '✓'
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-2">
@@ -84,7 +127,7 @@ const AdminMenuPage: React.FC = () => {
             <p className="text-zinc-400">{t('menu.no_items_desc', 'Manage restaurant menu items and availability.')}</p>
           </div>
           <button
-            onClick={() => setIsAddProductOpen(true)}
+            onClick={handleAddProduct}
             className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
           >
             <Plus className="h-5 w-5" />
@@ -119,75 +162,77 @@ const AdminMenuPage: React.FC = () => {
 
               {/* Menu Items Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groupedItems[category]?.map((item: MenuItem) => (
-                  <div
-                    key={item.id}
-                    className={`rounded-xl border p-5 transition-colors ${item.isActive
-                      ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
-                      : 'bg-zinc-900/50 border-zinc-800/50 opacity-75'
-                      }`}
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-white">{item.name}</h3>
-                        <p className="text-zinc-400 text-sm mt-1">
-                          {item.isActive
-                            ? `✓ ${t('tables.status_available', 'Available')}`
-                            : `✗ ${t('menu.stock_out', 'Out of Stock')}`}
-                          {item.inventory && (
-                            <span className="ml-2 text-xs text-zinc-500">
-                              ({item.inventory.quantity} in stock)
-                            </span>
-                          )}
-                        </p>
+                {groupedItems[category]?.map((item: MenuItem) => {
+                  const status = getStatusDisplay(item);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`rounded-xl border p-5 transition-colors ${item.isActive && (item.inventory?.quantity ?? 0) > 0
+                        ? 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                        : 'bg-zinc-900/50 border-zinc-800/50 opacity-75'
+                        }`}
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white">{item.name}</h3>
+                          <p className={`text-sm mt-1 flex items-center gap-2 ${status.textColor || 'text-zinc-400'}`}>
+                            <span>{status.icon} {status.text}</span>
+                            {item.inventory && (
+                              <span className="text-xs text-zinc-500">
+                                ({item.inventory.quantity} in stock)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <span className="text-lg font-bold text-teal-400">${Number(item.price).toFixed(2)}</span>
                       </div>
-                      <span className="text-lg font-bold text-teal-400">${Number(item.price).toFixed(2)}</span>
-                    </div>
 
-                    {/* Availability Badge */}
-                    <div className="mb-4">
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${item.isActive
-                          ? 'bg-emerald-500' // Changed to emerald for consistency
-                          : 'bg-red-500'
-                          }`}
-                      >
-                        {item.isActive ? t('tables.status_available', 'Available') : t('menu.stock_out', 'Out of Stock')}
-                      </span>
-                    </div>
+                      {/* Availability Badge */}
+                      <div className="mb-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${status.color}`}
+                        >
+                          {status.text}
+                        </span>
+                      </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => item.isActive ? handleToggleAvailability(item.id) : handleRestock(item)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${item.isActive
-                          ? 'bg-red-600 hover:bg-red-700'
-                          : 'bg-emerald-600 hover:bg-emerald-700'
-                          }`}
-                      >
-                        {item.isActive ? t('menu.stock_out', 'Stock Out') : t('menu.restock', 'Restock')}
-                      </button>
-                      <button className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
-                        {t('common.edit', 'Edit')}
-                      </button>
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => item.isActive ? handleToggleAvailability(item.id) : handleRestock(item)}
+                          className={`flex-1 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${item.isActive
+                            ? 'bg-red-600 hover:bg-red-700'
+                            : 'bg-emerald-600 hover:bg-emerald-700'
+                            }`}
+                        >
+                          {item.isActive ? t('menu.stock_out', 'Stock Out') : t('menu.restock', 'Restock')}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+                        >
+                          {t('common.edit', 'Edit')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add Product Modal */}
+      {/* Product Modal (Add & Edit) */}
       <AddProductModal
         isOpen={isAddProductOpen}
         onClose={() => setIsAddProductOpen(false)}
+        product={selectedProduct}
       />
 
       {/* Add Stock Modal */}
-      {selectedProduct && (
+      {selectedProduct && isAddStockOpen && (
         <AddStockModal
           isOpen={isAddStockOpen}
           onClose={() => {
