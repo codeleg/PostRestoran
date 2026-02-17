@@ -135,6 +135,25 @@ const AdminTablesPage: React.FC = () => {
 
         {/* Zone Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {/* ALL Filter */}
+          <button
+            onClick={() => setActiveZoneId('ALL')}
+            className={cn(
+              "h-10 px-6 rounded-lg font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 border-2",
+              activeZoneId === 'ALL'
+                ? "bg-emerald-500/10 border-emerald-500 text-emerald-500"
+                : "bg-transparent border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+            )}
+          >
+            {t('tables.area_all', 'ALL TABLES')}
+            <span className={cn(
+              "px-1.5 py-0.5 rounded text-[10px] font-black",
+              activeZoneId === 'ALL' ? "bg-emerald-500 text-white" : "bg-zinc-800 text-zinc-500"
+            )}>
+              {zones?.reduce((acc: number, zone: any) => acc + zone.tables.length, 0) || 0}
+            </span>
+          </button>
+
           {zones?.map((zone: any) => (
             <button
               key={zone.id}
@@ -157,61 +176,122 @@ const AdminTablesPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Tables Grid */}
-        {!currentZone || currentZone.tables.length === 0 ? (
-          <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-12 flex flex-col items-center justify-center text-center">
-            <p className="text-zinc-400 mb-2">{t('tables.no_tables_in_zone', 'No tables in this zone.')}</p>
-            <p className="text-zinc-600 text-sm">{t('tables.add_table_desc', 'Use the "Add Table" button to populate this zone.')}</p>
+        {/* Tables Content */}
+        {activeZoneId === 'ALL' ? (
+          <div className="space-y-10">
+            {zones?.map((zone: any) => (
+              <div key={zone.id} className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
+                  <h2 className="text-xl font-bold text-white">{t(`tables.area_${zone.name.toLowerCase().replace(' ', '_')}`, zone.name) as string}</h2>
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-xs font-bold">
+                    {zone.tables.length}
+                  </span>
+                </div>
+
+                {zone.tables.length === 0 ? (
+                  <div className="p-8 border border-dashed border-zinc-800 rounded-xl text-center text-zinc-500 text-sm">
+                    {t('tables.no_tables_in_zone', 'No tables in this zone.')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {zone.tables.slice().sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+                      .map((table: any) => {
+                        const statusColor = getStatusColor(table.status, 'text');
+                        const statusBorder = getStatusColor(table.status, 'border');
+                        const statusBg = getStatusColor(table.status, 'bg');
+                        const statusShadow = getStatusColor(table.status, 'shadow');
+
+                        return (
+                          <div
+                            key={table.id}
+                            onClick={() => setSelectedTable({ id: table.id, name: table.name })}
+                            className={cn(
+                              "relative group rounded-xl border-2 p-5 flex flex-col justify-between h-40 transition-all cursor-pointer hover:scale-[1.02] bg-slate-900",
+                              table.status === 'AVAILABLE' ? "border-emerald-500/20 hover:border-emerald-500 hover:bg-emerald-500/5" :
+                                table.status === 'OCCUPIED' ? "border-rose-500/20 hover:border-rose-500 hover:bg-rose-500/5" :
+                                  table.status === 'RESERVED' ? "border-amber-500/20 hover:border-amber-500 hover:bg-amber-500/5" :
+                                    "border-zinc-800"
+                            )}
+                          >
+                            <div className="flex justify-between items-start">
+                              <h3 className="text-xl font-black text-white">{table.name}</h3>
+                              <div className={cn("w-2.5 h-2.5 rounded-full", statusBg, statusShadow)} />
+                            </div>
+                            <div className="flex items-center gap-2 text-zinc-500">
+                              <Users size={14} />
+                              <span className="text-xs font-bold">{table.capacity} Seats</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-auto pt-4">
+                              <span className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-slate-950", statusColor)}>
+                                {table.status}
+                              </span>
+                              <button
+                                onClick={(e) => handleDeleteTable(e, table.id, table.name)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 hover:text-red-500 text-zinc-600 transition-colors"
+                                title={t('common.delete', 'Delete') as string}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {currentZone.tables.map((table: any) => {
-              const statusColor = getStatusColor(table.status, 'text');
-              const statusBorder = getStatusColor(table.status, 'border');
-              const statusBg = getStatusColor(table.status, 'bg');
-              const statusShadow = getStatusColor(table.status, 'shadow');
+            {(!currentZone || currentZone.tables.length === 0) ? (
+              <div className="col-span-full rounded-xl bg-zinc-900 border border-zinc-800 p-12 flex flex-col items-center justify-center text-center">
+                <p className="text-zinc-400 mb-2">{t('tables.no_tables_in_zone', 'No tables in this zone.')}</p>
+                <p className="text-zinc-600 text-sm">{t('tables.add_table_desc', 'Use the "Add Table" button to populate this zone.')}</p>
+              </div>
+            ) : (
+              currentZone.tables.slice().sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+                .map((table: any) => {
+                  const statusColor = getStatusColor(table.status, 'text');
+                  const statusBorder = getStatusColor(table.status, 'border');
+                  const statusBg = getStatusColor(table.status, 'bg');
+                  const statusShadow = getStatusColor(table.status, 'shadow');
 
-              return (
-                <div
-                  key={table.id}
-                  onClick={() => setSelectedTable({ id: table.id, name: table.name })}
-                  className={cn(
-                    "relative group rounded-xl border-2 p-5 flex flex-col justify-between h-40 transition-all cursor-pointer hover:scale-[1.02] bg-slate-900",
-                    table.status === 'AVAILABLE' ? "border-emerald-500/20 hover:border-emerald-500 hover:bg-emerald-500/5" :
-                      table.status === 'OCCUPIED' ? "border-rose-500/20 hover:border-rose-500 hover:bg-rose-500/5" :
-                        table.status === 'RESERVED' ? "border-amber-500/20 hover:border-amber-500 hover:bg-amber-500/5" :
-                          "border-zinc-800"
-                  )}
-                >
-                  {/* Header */}
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-xl font-black text-white">{table.name}</h3>
-                    <div className={cn("w-2.5 h-2.5 rounded-full", statusBg, statusShadow)} />
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex items-center gap-2 text-zinc-500">
-                    <Users size={14} />
-                    <span className="text-xs font-bold">{table.capacity} Seats</span>
-                  </div>
-
-                  {/* Footer / Actions */}
-                  <div className="flex items-center justify-between mt-auto pt-4">
-                    <span className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-slate-950", statusColor)}>
-                      {table.status}
-                    </span>
-
-                    <button
-                      onClick={(e) => handleDeleteTable(e, table.id, table.name)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 hover:text-red-500 text-zinc-600 transition-colors"
-                      title={t('common.delete', 'Delete') as string}
+                  return (
+                    <div
+                      key={table.id}
+                      onClick={() => setSelectedTable({ id: table.id, name: table.name })}
+                      className={cn(
+                        "relative group rounded-xl border-2 p-5 flex flex-col justify-between h-40 transition-all cursor-pointer hover:scale-[1.02] bg-slate-900",
+                        table.status === 'AVAILABLE' ? "border-emerald-500/20 hover:border-emerald-500 hover:bg-emerald-500/5" :
+                          table.status === 'OCCUPIED' ? "border-rose-500/20 hover:border-rose-500 hover:bg-rose-500/5" :
+                            table.status === 'RESERVED' ? "border-amber-500/20 hover:border-amber-500 hover:bg-amber-500/5" :
+                              "border-zinc-800"
+                      )}
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xl font-black text-white">{table.name}</h3>
+                        <div className={cn("w-2.5 h-2.5 rounded-full", statusBg, statusShadow)} />
+                      </div>
+                      <div className="flex items-center gap-2 text-zinc-500">
+                        <Users size={14} />
+                        <span className="text-xs font-bold">{table.capacity} Seats</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-auto pt-4">
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-slate-950", statusColor)}>
+                          {table.status}
+                        </span>
+                        <button
+                          onClick={(e) => handleDeleteTable(e, table.id, table.name)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 hover:text-red-500 text-zinc-600 transition-colors"
+                          title={t('common.delete', 'Delete') as string}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
           </div>
         )}
       </div>
