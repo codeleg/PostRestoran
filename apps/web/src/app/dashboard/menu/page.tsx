@@ -7,7 +7,7 @@ import { useMenuQuery, useToggleAvailability, useCategoriesQuery, type MenuItem,
 import AddProductModal from '@/components/admin/AddProductModal';
 import AddStockModal from '@/components/admin/AddStockModal';
 import CategoryManagementModal from '@/components/admin/CategoryManagementModal';
-import { Plus, ShoppingBag, FolderTree } from 'lucide-react';
+import { Plus, ShoppingBag, FolderTree, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const categoryOrder: Record<string, number> = {
@@ -54,33 +54,33 @@ const AdminMenuPage: React.FC = () => {
 
   // Helper to determine status display
   const getStatusDisplay = (item: MenuItem) => {
-    const stockQty = item.inventory?.quantity ?? 0;
+    const stockQty = Number(item.inventory?.quantity ?? 0);
 
-    // Critical: If stock is <= 0, it is Out of Stock regardless of Active status
+    // 1. Critical: If stock is 0 or less, it is physically Out of Stock
     if (stockQty <= 0) {
       return {
-        text: t('menu.stock_out', 'Out of Stock'),
+        text: t('menu.status_out_of_stock', 'Out of Stock'),
         color: 'bg-red-500',
         textColor: 'text-red-500',
         icon: '✗'
       };
     }
 
-    // If stock > 0 but Inactive, it is "Hidden" or "Unavailable"
+    // 2. If stock exists but it was manually deactivated
     if (!item.isActive) {
       return {
-        text: t('menu.unavailable', 'Unavailable'),
+        text: t('menu.status_disabled', 'Disabled / Passive'),
         color: 'bg-zinc-500',
         textColor: 'text-zinc-500',
         icon: '○'
       };
     }
 
-    // Default: Available
+    // 3. Default: Available & Active
     return {
-      text: t('tables.status_available', 'Available'),
+      text: t('menu.status_available', 'Available'),
       color: 'bg-emerald-500',
-      textColor: 'text-emerald-500', // for text display
+      textColor: 'text-emerald-500',
       icon: '✓'
     };
   };
@@ -122,10 +122,26 @@ const AdminMenuPage: React.FC = () => {
             : "border-zinc-800/50 opacity-75"
         )}
       >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-base font-bold text-white line-clamp-1">{item.name}</h3>
-            <div className="flex items-center gap-2 mt-1">
+        <div className="flex gap-4 mb-4">
+          <div className="relative w-20 h-20 rounded-xl bg-zinc-950 overflow-hidden shrink-0 border border-zinc-800">
+            {item.image ? (
+              <img
+                src={`http://localhost:3001${item.image}`}
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-zinc-800">
+                <Sparkles size={24} strokeWidth={1.5} />
+              </div>
+            )}
+          </div>
+          <div className="flex-1 flex flex-col justify-between py-1">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-base font-bold text-white line-clamp-2">{item.name}</h3>
+              <span className="text-base font-black text-emerald-400 tabular-nums">₺{Number(item.price).toLocaleString('tr-TR')}</span>
+            </div>
+            <div className="flex items-center gap-2">
               <span className={cn(
                 "text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1",
                 status.color.replace('500', '500/10'),
@@ -141,17 +157,20 @@ const AdminMenuPage: React.FC = () => {
               )}
             </div>
           </div>
-          <span className="text-base font-black text-emerald-400 tabular-nums">₺{Number(item.price).toLocaleString('tr-TR')}</span>
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => item.isActive ? handleToggleAvailability(item.id) : handleRestock(item)}
+            onClick={() => handleToggleAvailability(item.id)}
+            disabled={!item.isActive && Number(item.inventory?.quantity ?? 0) <= 0}
             className={cn(
               "flex-1 px-3 py-2 rounded-lg text-white text-[10px] font-black uppercase tracking-widest transition-all",
-              item.isActive ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-emerald-500 text-slate-950 font-black"
+              item.isActive
+                ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                : "bg-emerald-500 text-slate-950 font-black disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
             )}
+            title={!item.isActive && Number(item.inventory?.quantity ?? 0) <= 0 ? t('menu.cannot_activate_no_stock', 'Cannot activate without stock') : ''}
           >
-            {item.isActive ? t('menu.stock_out', 'Stock Out') : t('menu.restock', 'Restock')}
+            {item.isActive ? t('menu.deactivate', 'Deactivate') : t('menu.activate', 'Activate')}
           </button>
           <button
             onClick={() => handleEdit(item)}
@@ -175,7 +194,10 @@ const AdminMenuPage: React.FC = () => {
   // Add Uncategorized bucket
   groupedItems['Uncategorized'] = [];
 
-  menuItems.forEach((item: MenuItem) => {
+  // Sorting alphabetically by name for stability
+  const sortedMenuItems = [...menuItems].sort((a, b) => a.name.localeCompare(b.name));
+
+  sortedMenuItems.forEach((item: MenuItem) => {
     const categoryName = item.category?.name || 'Uncategorized';
     if (!groupedItems[categoryName]) {
       // Handle the case where a product has a category that isn't in our list (shouldn't happen with our delete logic, but good for safety)
