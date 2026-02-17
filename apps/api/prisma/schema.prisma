@@ -36,6 +36,7 @@ model User {
   shift     ShiftType  @default(FULL_DAY)
   status    UserStatus @default(ACTIVE)
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  ordersServed Order[] @relation("OrderWaiter")
 
   @@map("users")
 }
@@ -174,9 +175,12 @@ model Order {
   paymentMethod PaymentMethod?
   paymentRef    String?
   paymentStatus PaymentStatus   @default(PENDING)
+  guestCount    Int?            @default(1)
+  waiterId      String?
   items         OrderItem[]
   table         RestaurantTable @relation(fields: [tableId], references: [id])
   tenant        Tenant          @relation(fields: [tenantId], references: [id])
+  waiter        User?           @relation("OrderWaiter", fields: [waiterId], references: [id])
 
   @@map("orders")
 }
