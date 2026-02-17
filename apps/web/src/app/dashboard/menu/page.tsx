@@ -7,7 +7,7 @@ import { useMenuQuery, useToggleAvailability, useCategoriesQuery, type MenuItem,
 import AddProductModal from '@/components/admin/AddProductModal';
 import AddStockModal from '@/components/admin/AddStockModal';
 import CategoryManagementModal from '@/components/admin/CategoryManagementModal';
-import { Plus, ShoppingBag, FolderTree, Sparkles } from 'lucide-react';
+import { Plus, ShoppingBag, FolderTree, Sparkles, Pencil, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const categoryOrder: Record<string, number> = {
@@ -160,23 +160,25 @@ const AdminMenuPage: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => handleEdit(item)}
+            className="flex-1 h-10 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-zinc-200 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-white/5"
+          >
+            <Pencil size={14} />
+            {t('common.edit', 'Edit')}
+          </button>
+
+          <button
             onClick={() => handleToggleAvailability(item.id)}
             disabled={!item.isActive && Number(item.inventory?.quantity ?? 0) <= 0}
             className={cn(
-              "flex-1 px-3 py-2 rounded-lg text-white text-[10px] font-black uppercase tracking-widest transition-all",
+              "w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 border",
               item.isActive
-                ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
-                : "bg-emerald-500 text-slate-950 font-black disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                ? "bg-zinc-800 text-emerald-500 border-zinc-700 hover:bg-zinc-700"
+                : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 disabled:opacity-30 disabled:grayscale"
             )}
-            title={!item.isActive && Number(item.inventory?.quantity ?? 0) <= 0 ? t('menu.cannot_activate_no_stock', 'Cannot activate without stock') : ''}
+            title={!item.isActive && Number(item.inventory?.quantity ?? 0) <= 0 ? t('menu.cannot_activate_no_stock', 'Cannot activate without stock') : (item.isActive ? t('menu.deactivate', 'Deactivate') : t('menu.activate', 'Activate'))}
           >
-            {item.isActive ? t('menu.deactivate', 'Deactivate') : t('menu.activate', 'Activate')}
-          </button>
-          <button
-            onClick={() => handleEdit(item)}
-            className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-[10px] font-black uppercase tracking-widest transition-all border border-zinc-700"
-          >
-            {t('common.edit', 'Edit')}
+            {item.isActive ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
         </div>
       </div>
