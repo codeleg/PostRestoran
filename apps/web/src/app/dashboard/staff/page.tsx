@@ -2,32 +2,26 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStaffQuery, useUpdateStaffStatus, useUpdateStaffShift } from '@/lib/api/useStaffQuery';
+import { useStaffQuery, useUpdateStaffStatus, useUpdateStaffShift, StaffMember } from '@/lib/api/useStaffQuery';
+import { UserRole, UserStatus, ShiftType } from '@postrestoran/shared';
 import { useToast } from '@/hooks/useToast';
 import { Plus } from 'lucide-react';
 import AddStaffModal from '@/components/admin/AddStaffModal';
 
-const roleColors: Record<string, string> = {
-  'Waiter': 'bg-blue-500',
-  'Chef': 'bg-orange-500',
-  'Cashier': 'bg-purple-500',
-  'Manager': 'bg-red-500',
+const roleColors: Record<UserRole, string> = {
+  [UserRole.WAITER]: 'bg-blue-500',
+  [UserRole.KITCHEN]: 'bg-orange-500',
+  [UserRole.CASHIER]: 'bg-purple-500',
+  [UserRole.MANAGER]: 'bg-red-500',
+  [UserRole.OWNER]: 'bg-zinc-700',
 };
 
-const statusColors: Record<string, string> = {
-  'Active': 'bg-green-500',
-  'Off-duty': 'bg-gray-500',
+const statusColors: Record<UserStatus, string> = {
+  [UserStatus.ACTIVE]: 'bg-green-500',
+  [UserStatus.OFF_DUTY]: 'bg-gray-500',
 };
 
-interface StaffMember {
-  id: string;
-  fullName: string;
-  role: string;
-  status: 'Active' | 'Off-duty';
-  shift: string;
-}
-
-const shiftOptions = ['Morning', 'Evening', 'Full Day'] as const;
+const shiftOptions = [ShiftType.MORNING, ShiftType.EVENING, ShiftType.FULL_DAY] as const;
 
 const AdminStaffPage: React.FC = () => {
   const { t } = useTranslation();
@@ -40,7 +34,7 @@ const AdminStaffPage: React.FC = () => {
   const handleStatusChange = async (staffId: string) => {
     const member = staff?.find((s: StaffMember) => s.id === staffId);
     if (member) {
-      const newStatus = member.status === 'Active' ? 'Off-duty' : 'Active';
+      const newStatus = member.status === UserStatus.ACTIVE ? UserStatus.OFF_DUTY : UserStatus.ACTIVE;
       try {
         await updateStatus.mutateAsync({ staffId, status: newStatus });
         toast.success(t('staff.toast_update_success', 'Staff information updated successfully.'));
@@ -50,7 +44,7 @@ const AdminStaffPage: React.FC = () => {
     }
   };
 
-  const handleShiftChange = async (staffId: string, newShift: 'Morning' | 'Evening' | 'Full Day') => {
+  const handleShiftChange = async (staffId: string, newShift: ShiftType) => {
     try {
       await updateShift.mutateAsync({ staffId, shift: newShift });
       toast.success(t('staff.toast_update_success', 'Staff information updated successfully.'));
@@ -127,7 +121,7 @@ const AdminStaffPage: React.FC = () => {
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium text-white ${statusColors[member.status]}`}
                 >
-                  {member.status === 'Active' ? t('staff.status_active', 'Active') : t('staff.status_off_duty', 'Off-duty')}
+                  {member.status === UserStatus.ACTIVE ? t('staff.status_active', 'Active') : t('staff.status_off_duty', 'Off-duty')}
                 </span>
               </div>
 
@@ -142,12 +136,12 @@ const AdminStaffPage: React.FC = () => {
                 {/* Status Toggle */}
                 <button
                   onClick={() => handleStatusChange(member.id)}
-                  className={`w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${member.status === 'Active'
+                  className={`w-full px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors ${member.status === UserStatus.ACTIVE
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-green-600 hover:bg-green-700'
                     }`}
                 >
-                  {member.status === 'Active' ? t('staff.set_off_duty', 'Set Off-duty') : t('staff.set_active', 'Set Active')}
+                  {member.status === UserStatus.ACTIVE ? t('staff.set_off_duty', 'Set Off-duty') : t('staff.set_active', 'Set Active')}
                 </button>
 
                 {/* Shift Selector */}
@@ -161,7 +155,7 @@ const AdminStaffPage: React.FC = () => {
                         : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
                         }`}
                     >
-                      {shift === 'Full Day' ? t('staff.shift_full', 'Full') : t(`staff.shift_${shift.toLowerCase()}`, shift.slice(0, 3))}
+                      {shift === ShiftType.FULL_DAY ? t('staff.shift_full', 'Full') : t(`staff.shift_${shift.toLowerCase()}`, shift.slice(0, 3))}
                     </button>
                   ))}
                 </div>
@@ -178,7 +172,5 @@ const AdminStaffPage: React.FC = () => {
     </div>
   );
 };
-
-
 
 export default AdminStaffPage;
