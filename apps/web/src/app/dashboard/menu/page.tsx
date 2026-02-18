@@ -200,7 +200,7 @@ const AdminMenuPage: React.FC = () => {
   const sortedMenuItems = [...menuItems].sort((a, b) => a.name.localeCompare(b.name));
 
   sortedMenuItems.forEach((item: MenuItem) => {
-    const categoryName = item.category?.name || 'Uncategorized';
+    const categoryName = item.category || 'Uncategorized';
     if (!groupedItems[categoryName]) {
       // Handle the case where a product has a category that isn't in our list (shouldn't happen with our delete logic, but good for safety)
       groupedItems['Uncategorized'].push(item);

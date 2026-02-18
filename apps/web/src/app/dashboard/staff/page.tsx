@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { Plus } from 'lucide-react';
 import AddStaffModal from '@/components/admin/AddStaffModal';
 
-const roleColors: Record<UserRole, string> = {
+const roleColors: Record<string, string> = {
   [UserRole.WAITER]: 'bg-blue-500',
   [UserRole.KITCHEN]: 'bg-orange-500',
   [UserRole.CASHIER]: 'bg-purple-500',
@@ -16,7 +16,7 @@ const roleColors: Record<UserRole, string> = {
   [UserRole.OWNER]: 'bg-zinc-700',
 };
 
-const statusColors: Record<UserStatus, string> = {
+const statusColors: Record<string, string> = {
   [UserStatus.ACTIVE]: 'bg-green-500',
   [UserStatus.OFF_DUTY]: 'bg-gray-500',
 };

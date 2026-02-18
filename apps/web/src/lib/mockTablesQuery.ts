@@ -1,7 +1,7 @@
 import { QueryClient, useQuery } from '@tanstack/react-query';
-import { useTablesStore } from '@/store/useTablesStore';
+import { useTablesStore, Table } from '@/store/useTablesStore';
 
-export const fetchMockTables = async () => {
+export const fetchMockTables = async (): Promise<Table[]> => {
   // Simulate network delay
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -13,7 +13,7 @@ export const fetchMockTables = async () => {
 };
 
 export const useMockTablesQuery = () => {
-  return useQuery({
+  return useQuery<Table[]>({
     queryKey: ['tables'],
     queryFn: fetchMockTables,
   });

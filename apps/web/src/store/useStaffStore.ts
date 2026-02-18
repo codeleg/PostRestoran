@@ -1,29 +1,30 @@
 import { create } from 'zustand';
+import { UserRole, UserStatus, ShiftType } from '@postrestoran/shared';
 
-export interface Staff {
+export interface StaffMember {
   id: string;
   fullName: string;
-  role: 'Waiter' | 'Chef' | 'Cashier' | 'Manager';
-  shift: 'Morning' | 'Evening' | 'Full Day';
-  status: 'Active' | 'Off-duty';
+  role: UserRole;
+  shift: ShiftType;
+  status: UserStatus;
 }
 
 interface StaffState {
-  staff: Staff[];
-  updateStaffStatus: (id: string, status: Staff['status']) => void;
-  updateStaffShift: (id: string, shift: Staff['shift']) => void;
+  staff: StaffMember[];
+  updateStaffStatus: (id: string, status: UserStatus) => void;
+  updateStaffShift: (id: string, shift: ShiftType) => void;
 }
 
 export const useStaffStore = create<StaffState>((set) => ({
   staff: [
-    { id: '1', fullName: 'John Martinez', role: 'Manager', shift: 'Full Day', status: 'Active' },
-    { id: '2', fullName: 'Sarah Chen', role: 'Waiter', shift: 'Morning', status: 'Active' },
-    { id: '3', fullName: 'Mike Johnson', role: 'Chef', shift: 'Morning', status: 'Active' },
-    { id: '4', fullName: 'Emma Wilson', role: 'Waiter', shift: 'Evening', status: 'Active' },
-    { id: '5', fullName: 'David Lee', role: 'Chef', shift: 'Evening', status: 'Off-duty' },
-    { id: '6', fullName: 'Lisa Garcia', role: 'Cashier', shift: 'Full Day', status: 'Active' },
-    { id: '7', fullName: 'James Brown', role: 'Waiter', shift: 'Full Day', status: 'Off-duty' },
-    { id: '8', fullName: 'Rachel Taylor', role: 'Manager', shift: 'Morning', status: 'Active' },
+    { id: '1', fullName: 'John Martinez', role: UserRole.MANAGER, shift: ShiftType.FULL_DAY, status: UserStatus.ACTIVE },
+    { id: '2', fullName: 'Sarah Chen', role: UserRole.WAITER, shift: ShiftType.MORNING, status: UserStatus.ACTIVE },
+    { id: '3', fullName: 'Mike Johnson', role: UserRole.KITCHEN, shift: ShiftType.MORNING, status: UserStatus.ACTIVE },
+    { id: '4', fullName: 'Emma Wilson', role: UserRole.WAITER, shift: ShiftType.EVENING, status: UserStatus.ACTIVE },
+    { id: '5', fullName: 'David Lee', role: UserRole.KITCHEN, shift: ShiftType.EVENING, status: UserStatus.OFF_DUTY },
+    { id: '6', fullName: 'Lisa Garcia', role: UserRole.CASHIER, shift: ShiftType.FULL_DAY, status: UserStatus.ACTIVE },
+    { id: '7', fullName: 'James Brown', role: UserRole.WAITER, shift: ShiftType.FULL_DAY, status: UserStatus.OFF_DUTY },
+    { id: '8', fullName: 'Rachel Taylor', role: UserRole.MANAGER, shift: ShiftType.MORNING, status: UserStatus.ACTIVE },
   ],
   updateStaffStatus: (id, status) =>
     set((state) => ({

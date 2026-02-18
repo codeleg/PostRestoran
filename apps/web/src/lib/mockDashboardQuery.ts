@@ -1,7 +1,7 @@
 import { QueryClient, useQuery } from '@tanstack/react-query';
-import { useDashboardStore } from '@/store/useDashboardStore';
+import { useDashboardStore, DashboardStats } from '@/store/useDashboardStore';
 
-export const fetchMockDashboardStats = async () => {
+export const fetchMockDashboardStats = async (): Promise<DashboardStats> => {
   // Simulate network delay
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -13,7 +13,7 @@ export const fetchMockDashboardStats = async () => {
 };
 
 export const useMockDashboardQuery = () => {
-  return useQuery({
+  return useQuery<DashboardStats>({
     queryKey: ['dashboard'],
     queryFn: fetchMockDashboardStats,
   });

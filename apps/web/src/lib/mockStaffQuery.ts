@@ -1,7 +1,7 @@
 import { QueryClient, useQuery } from '@tanstack/react-query';
-import { useStaffStore } from '@/store/useStaffStore';
+import { useStaffStore, StaffMember } from '@/store/useStaffStore';
 
-export const fetchMockStaff = async () => {
+export const fetchMockStaff = async (): Promise<StaffMember[]> => {
   // Simulate network delay
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -13,7 +13,7 @@ export const fetchMockStaff = async () => {
 };
 
 export const useMockStaffQuery = () => {
-  return useQuery({
+  return useQuery<StaffMember[]>({
     queryKey: ['staff'],
     queryFn: fetchMockStaff,
   });

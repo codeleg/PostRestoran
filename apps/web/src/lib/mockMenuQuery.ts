@@ -1,7 +1,7 @@
 import { QueryClient, useQuery } from '@tanstack/react-query';
-import { useMenuStore } from '@/store/useMenuStore';
+import { useMenuStore, MenuItem } from '@/store/useMenuStore';
 
-export const fetchMockMenuItems = async () => {
+export const fetchMockMenuItems = async (): Promise<MenuItem[]> => {
   // Simulate network delay
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -13,7 +13,7 @@ export const fetchMockMenuItems = async () => {
 };
 
 export const useMockMenuQuery = () => {
-  return useQuery({
+  return useQuery<MenuItem[]>({
     queryKey: ['menu'],
     queryFn: fetchMockMenuItems,
   });
