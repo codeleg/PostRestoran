@@ -182,6 +182,8 @@ model Order {
   tenant        Tenant          @relation(fields: [tenantId], references: [id])
   waiter        User?           @relation("OrderWaiter", fields: [waiterId], references: [id])
 
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
   @@map("orders")
 }
 
