@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./client"
 }
 
 datasource db {
@@ -20,6 +19,14 @@ model Tenant {
   tables     RestaurantTable[]
   users      User[]
   zones      Zone[]
+
+  // Phase 1 Foundations - Global & SaaS Support
+  region          String   @default("TR")
+  defaultCurrency String   @default("TRY")
+  taxStrategyId   String   @default("NONE")
+  planType        String   @default("TRIAL")
+  slug            String?  @unique
+  settings        Json?    // For feature flags and custom per-tenant configs
 
   @@map("tenants")
 }
@@ -177,11 +184,17 @@ model Order {
   paymentRef    String?
   paymentStatus PaymentStatus   @default(PENDING)
   guestCount    Int?            @default(1)
+  guestPhone    String?
+  guestName     String?
   waiterId      String?
   items         OrderItem[]
   table         RestaurantTable @relation(fields: [tableId], references: [id])
   tenant        Tenant          @relation(fields: [tenantId], references: [id])
   waiter        User?           @relation("OrderWaiter", fields: [waiterId], references: [id])
+
+  // Phase 1 Foundations
+  origin         OrderOrigin @default(WAITER)
+  idempotencyKey String?     @unique
 
   @@index([tenantId, createdAt])
   @@index([tenantId, status])
@@ -285,6 +298,40 @@ enum PaymentMethod {
   ONLINE
   OTHER
 }
+
+enum OrderOrigin {
+  WAITER
+  GUEST_QR
+  DELIVERY
+  KIOSK
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model PaymentAttempt {
+  id             String               @id @default(uuid())
+  tenantId       String
+  orderId        String
+  providerId     String               // e.g., 'MOCK', 'IYZICO', 'STRIPE'
+  status         PaymentAttemptStatus @default(PENDING)
+  amountMinor    BigInt               // Stored in minor units (bigint)
+  currency       String               // ISO 4217 code
+  providerRef    String?              // External reference (e.g., paymentIntentId)
+  idempotencyKey String               @unique
+  metadata       Json?                // Raw response from provider
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([tenantId, orderId])
+  @@index([idempotencyKey])
+  @@map("payment_attempts")
+}
 enum OutboxStatus {
   PENDING
   PROCESSING
@@ -302,8 +349,10 @@ model OutboxEvent {
   tenantId      String
   correlationId String?      // For idempotency (e.g., checkoutId)
   createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   processedAt   DateTime?
 
   @@index([status, createdAt])
+  @@index([status, updatedAt])
   @@map("outbox_events")
 }

@@ -1,8 +1,9 @@
-version: '3.8'
-
 services:
+  # ─────────────────────────────────────────────────────────
+  # DATABASE TIER
+  # ─────────────────────────────────────────────────────────
   postgres:
-    image: postgres:15
+    image: postgres:15.6-alpine
     container_name: pos_postgres
     environment:
       POSTGRES_USER: postgres
@@ -12,24 +13,128 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: always
 
+  # ─────────────────────────────────────────────────────────
+  # CACHE TIER
+  # ─────────────────────────────────────────────────────────
   redis:
-    image: redis:alpine
+    image: redis:7.2.4-alpine
     container_name: pos_redis
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: always
+
+  # ─────────────────────────────────────────────────────────
+  # MIGRATION TIER (One-shot)
+  # Prevents race conditions during horizontal scaling.
+  # ─────────────────────────────────────────────────────────
+  migration:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: postrestoran-api:latest
+    container_name: pos_migration
+    command: npx prisma migrate deploy --schema=prisma/schema.prisma
+    env_file:
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ─────────────────────────────────────────────────────────
+  # APPLICATION TIER (Horizontally Scalable)
+  # ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    image: postrestoran-api:latest
+    # container_name: pos_api (DISABLED for scaling/multiple replicas)
+    env_file:
+      - .env.docker
+    ports:
+      - "3001:3001"
+    # volumes: (Local filesystem coupling - RECOMMENDED: S3/Object Storage)
+    #   - ./apps/api/uploads:/app/apps/api/uploads
+    deploy:
+      replicas: 1 # Scalable to 2+ in production with a load balancer
+      resources:
+        limits:
+          memory: 768M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:3001/api/v1/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    image: postrestoran-web:latest
+    # container_name: pos_web (DISABLED for scaling)
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    deploy:
+      replicas: 1 # Scalable to 2+ in production
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: always
 
 volumes:
   postgres_data:

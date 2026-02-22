@@ -11,20 +11,11 @@
         "outDir": "./dist",
         "baseUrl": "./",
         "paths": {
-            "@prisma/client": [
-                "prisma/client"
-            ],
             "@modules/*": [
                 "src/modules/*"
             ],
             "@shared/*": [
                 "src/shared/*"
-            ],
-            "@postrestoran/shared": [
-                "../../packages/shared/index.ts"
-            ],
-            "@postrestoran/shared/*": [
-                "../../packages/shared/*"
             ]
         },
         "incremental": true,
