@@ -18,21 +18,23 @@ COPY --from=pruner /app/out/json/ ./
 COPY --from=pruner /app/out/package-lock.json ./
 RUN npm ci
 
-# ──────────────────────────────────────────────
-# Stage 3: Build the API
-# ──────────────────────────────────────────────
-FROM base AS builder
+# Stage 3: Development Stage (Full Dependencies)
+FROM base AS development
 WORKDIR /app
 COPY --from=pruner /app/out/full/ ./
-# Generate Prisma client (needed for build)
+# Generate Prisma client for dev
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
-# Build shared first then API
+# Build shared for the dev environment
 RUN npm run build --workspace=@postrestoran/shared
+
+# Stage 4: Build for Production
+FROM development AS builder
+WORKDIR /app
+# Build API
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build --workspace=api
 
-# ──────────────────────────────────────────────
-# Stage 4: Prune for production
-# ──────────────────────────────────────────────
+# Stage 5: Prune for production
 FROM base AS installer
 WORKDIR /app
 # Copy shared artifacts and prisma schema

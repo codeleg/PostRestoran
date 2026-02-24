@@ -20,20 +20,26 @@ COPY --from=pruner /app/out/json/ ./
 COPY --from=pruner /app/out/package-lock.json ./
 RUN npm ci
 
-# ──────────────────────────────────────────────
-# Stage 3: Build the Web App
-# ──────────────────────────────────────────────
-FROM node:20.12.0-alpine3.19 AS builder
-RUN apk add --no-cache libc6-compat openssl
+# Stage 3: Development Stage (Full Dependencies)
+FROM installer AS development
 WORKDIR /app
-COPY --from=installer /app/ .
 COPY --from=pruner /app/out/full/ ./
+# Build shared for dev
+RUN npm run build --workspace=@postrestoran/shared
+
+# Stage 4: Build the Web App
+FROM development AS builder
+WORKDIR /app
 
 # Copy environment variables for build time
 # (NEXT_PUBLIC_ variables are bundled into the client)
 COPY .env.docker .env
+COPY .env.docker apps/web/.env
 
 # Build the project
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_OTEL_VERBOSE=1
+
 RUN npm run build --workspace=@postrestoran/shared
 RUN npm run build --workspace=web
 
