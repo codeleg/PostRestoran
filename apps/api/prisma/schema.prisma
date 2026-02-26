@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TenantPlan {
+  FREE
+  PRO
+  PREMIUM
+}
+
 model Tenant {
   id         String            @id @default(uuid())
   name       String
@@ -19,14 +25,20 @@ model Tenant {
   tables     RestaurantTable[]
   users      User[]
   zones      Zone[]
+  productModifierGroups ProductModifierGroup[]
+  modifiers             Modifier[]
+  inventory             Inventory[]
+  orderItems            OrderItem[]
+  orderModifiers        OrderModifier[]
+  paymentAttempts       PaymentAttempt[]
 
   // Phase 1 Foundations - Global & SaaS Support
-  region          String   @default("TR")
-  defaultCurrency String   @default("TRY")
-  taxStrategyId   String   @default("NONE")
-  planType        String   @default("TRIAL")
-  slug            String?  @unique
-  settings        Json?    // For feature flags and custom per-tenant configs
+  region          String     @default("TR")
+  defaultCurrency String     @default("TRY")
+  taxStrategyId   String     @default("NONE")
+  plan            TenantPlan @default(FREE)
+  slug            String?    @unique
+  settings        Json?      // For feature flags and custom per-tenant configs
 
   @@map("tenants")
 }
@@ -46,6 +58,7 @@ model User {
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   ordersServed Order[] @relation("OrderWaiter")
 
+  @@index([tenantId, role])
   @@map("users")
 }
 
@@ -59,6 +72,7 @@ model Product {
   categoryId     String?
   isDeleted      Boolean                @default(false)
   isActive       Boolean                @default(true)
+  isStockTracked Boolean                @default(true)
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   inventory      Inventory?
@@ -67,6 +81,9 @@ model Product {
   category       Category?              @relation(fields: [categoryId], references: [id])
   tenant         Tenant                 @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId, isDeleted])
+  @@index([tenantId, isActive])
+  @@index([tenantId, categoryId])
   @@map("products")
 }
 
@@ -85,6 +102,7 @@ model Category {
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   products  Product[]
 
+  @@index([tenantId, isDeleted])
   @@map("categories")
 }
 
@@ -94,11 +112,14 @@ model ProductModifierGroup {
   minSelection Int        @default(0)
   maxSelection Int        @default(1)
   productId    String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  tenantId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   modifiers    Modifier[]
-  product      Product    @relation(fields: [productId], references: [id])
+  product      Product  @relation(fields: [productId], references: [id])
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
   @@map("product_modifier_groups")
 }
 
@@ -107,13 +128,16 @@ model Modifier {
   name           String
   priceChange    Decimal              @default(0) @db.Decimal(10, 2)
   groupId        String
+  tenantId       String
   isDefault      Boolean              @default(false)
   isAvailable    Boolean              @default(true)
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   group          ProductModifierGroup @relation(fields: [groupId], references: [id])
   orderModifiers OrderModifier[]
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
   @@map("modifiers")
 }
 
@@ -123,9 +147,12 @@ model Inventory {
   lowStockThreshold Int      @default(5)
   allowBackorder    Boolean  @default(false)
   productId         String   @unique
+  tenantId          String
   updatedAt         DateTime @updatedAt
   product           Product  @relation(fields: [productId], references: [id])
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
   @@map("inventory")
 }
 
@@ -139,6 +166,7 @@ model Zone {
   tables    RestaurantTable[]
   tenant    Tenant            @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId, isDeleted])
   @@map("zones")
 }
 
@@ -165,6 +193,8 @@ model RestaurantTable {
   tenant         Tenant    @relation(fields: [tenantId], references: [id])
   zone           Zone?     @relation(fields: [zoneId], references: [id])
 
+  @@index([tenantId, status])
+  @@index([tenantId, isDeleted])
   @@map("restaurant_tables")
 }
 
@@ -194,9 +224,11 @@ model Order {
 
   // Phase 1 Foundations
   origin         OrderOrigin @default(WAITER)
-  idempotencyKey String?     @unique
+  idempotencyKey String?
 
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, createdAt])
+  @@index([tenantId, tableId, status])
   @@index([tenantId, status])
   @@map("orders")
 }
@@ -205,6 +237,7 @@ model OrderItem {
   id         String          @id @default(uuid())
   orderId    String
   productId  String
+  tenantId   String
   quantity   Int             @default(1)
   unitPrice  Decimal         @db.Decimal(10, 2)
   totalPrice Decimal         @db.Decimal(10, 2)
@@ -214,7 +247,11 @@ model OrderItem {
   order      Order           @relation(fields: [orderId], references: [id])
   product    Product         @relation(fields: [productId], references: [id])
   modifiers  OrderModifier[]
+  tenant     Tenant          @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
@@ -222,13 +259,18 @@ model OrderModifier {
   id          String    @id @default(uuid())
   orderItemId String
   modifierId  String
+  tenantId    String
   name        String
   priceChange Decimal   @db.Decimal(10, 2)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   modifier    Modifier  @relation(fields: [modifierId], references: [id])
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
+  @@index([orderItemId])
+  @@index([modifierId])
   @@map("order_modifiers")
 }
 
@@ -327,6 +369,7 @@ model PaymentAttempt {
   metadata       Json?                // Raw response from provider
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, orderId])
   @@index([idempotencyKey])
@@ -351,6 +394,7 @@ model OutboxEvent {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   processedAt   DateTime?
+  nextRetryAt   DateTime?    // For exponential backoff
 
   @@index([status, createdAt])
   @@index([status, updatedAt])
