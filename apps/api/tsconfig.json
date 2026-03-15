@@ -11,6 +11,9 @@
         "outDir": "./dist",
         "baseUrl": "./",
         "paths": {
+            "@postrestoran/shared": [
+                "../../packages/shared/index.ts"
+            ],
             "@modules/*": [
                 "src/modules/*"
             ],

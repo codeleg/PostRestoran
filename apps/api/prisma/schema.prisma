@@ -31,6 +31,7 @@ model Tenant {
   orderItems            OrderItem[]
   orderModifiers        OrderModifier[]
   paymentAttempts       PaymentAttempt[]
+  staffLogs             StaffLog[]
 
   // Phase 1 Foundations - Global & SaaS Support
   region          String     @default("TR")
@@ -57,9 +58,24 @@ model User {
   status    UserStatus @default(ACTIVE)
   tenant    Tenant     @relation(fields: [tenantId], references: [id])
   ordersServed Order[] @relation("OrderWaiter")
+  logs      StaffLog[]
 
   @@index([tenantId, role])
   @@map("users")
+}
+
+model StaffLog {
+  id        String   @id @default(uuid())
+  userId    String
+  tenantId  String
+  checkIn   DateTime @default(now())
+  checkOut  DateTime?
+  note      String?
+  user      User     @relation(fields: [userId], references: [id])
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, checkIn])
+  @@map("staff_logs")
 }
 
 model Product {

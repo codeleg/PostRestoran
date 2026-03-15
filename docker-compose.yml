@@ -81,15 +81,14 @@ services:
       - "3001:3001"
     volumes:
       - .:/app:cached
-      - /app/apps/api/node_modules
       - /app/node_modules
-      - api_dist:/app/apps/api/dist
+      - /app/apps/api/node_modules
     command: npm run dev --workspace=api
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '0.8'
+          memory: 4G
+          cpus: '1.0'
       restart_policy:
         condition: on-failure
     depends_on:
@@ -117,15 +116,15 @@ services:
       - "3000:3000"
     volumes:
       - .:/app:cached
-      - /app/apps/web/node_modules
       - /app/node_modules
-      - web_next:/app/apps/web/.next
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
     command: npm run dev --workspace=web
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: '0.8'
+          memory: 4G
+          cpus: '1.0'
       restart_policy:
         condition: on-failure
     depends_on:
@@ -140,5 +139,3 @@ volumes:
   redis_data:
     external: true
     name: docker_redis_data
-  api_dist:
-  web_next:
