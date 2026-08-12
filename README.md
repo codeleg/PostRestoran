@@ -1,24 +1,5 @@
 # PostRestoran
-Post Restaurant-Coffee SaaS Project
+Post Restaurant-Coffee SaaS Project : Rose-pos projesinin bir prototype'ı olarak oluşturduğum bu projede sadece restorant işleyişinin ve ödeme ve sipariş verilmesinin kasa-garson - mutfak tarafındanki işleyişi anlatması oluşturdum.
 
-Short professional description
 
 [Demo] ---> please for link : https://rosepospro.com/ 
-
-## Overview
-## The Problem
-## The Solution
-## Key Features
-## User Roles
-## Architecture
-## Technology Stack
-## Database
-## Authentication & Security
-## Screenshots
-## Project Structure
-## Technical Challenges
-## What I Learned
-## Future Improvements
-## Installation
-## Environment Variables
-## License
